@@ -9,9 +9,10 @@ PG_MODULE_MAGIC;
 
 #define API_URL "https://api.openai.com/v1/completions"
 #define API_HEADER1 "Content-Type: application/json"
-#define API_HEADER2 "Authorization: Bearer  secret-api-token-here"
+#define API_HEADER2 "Authorization: Bearer sk-my-secret-code"
 
-static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp)
+static size_t
+write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
     char *response = (char *)userp;
@@ -19,16 +20,16 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, void *us
     return realsize;
 }
 
-PG_FUNCTION_INFO_V1(my_get_sum);
+PG_FUNCTION_INFO_V1(gpt_query_to_sql);
 
-Datum my_get_sum(PG_FUNCTION_ARGS)
+Datum gpt_query_to_sql(PG_FUNCTION_ARGS)
 {
     CURL *curl;
     CURLcode res;
     struct curl_slist *headers = NULL;
 
     char response[1024] = {0};
-    char data[] = "{\"model\": \"code-davinci-002\", \"prompt\": \"Say this is a test\", \"temperature\": 0, \"max_tokens\": 7}";
+    char data[] = "{\r\n  \"model\": \"code-davinci-002\",\r\n  \"prompt\": \"### Postgres SQL tables, with their properties:\\n#\\n# Employee(id, name, department_id)\\n# Department(id, name, address)\\n# Salary_Payments(id, employee_id, amount, date)\\n#\\n### Query: A query to list the names of the departments which employed more than 10 employees in the last 3 months\\nSQL:\",\r\n  \"temperature\": 0,\r\n  \"max_tokens\": 150,\r\n  \"top_p\": 1.0,\r\n  \"frequency_penalty\": 0.0,\r\n  \"presence_penalty\": 0.0,\r\n  \"stop\": [\"#\", \";\"]\r\n}";
 
     curl = curl_easy_init();
     if (curl)

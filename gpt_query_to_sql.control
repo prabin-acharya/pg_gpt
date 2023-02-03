@@ -1,5 +1,5 @@
-# get_sum postgresql extension
-comment = 'simple sum of two integers for postgres extension using c'
+# gpt_query_to_sql postgresql extension
+comment = 'generate sql from gpt query'
 default_version = '0.0.1'
-module_pathname = '$libdir/my_get_sum'
+module_pathname = '$libdir/gpt_query_to_sql'
 relocatable = false

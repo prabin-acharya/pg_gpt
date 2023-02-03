@@ -1,6 +1,6 @@
 --complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION my_get_sum" to load this file. \quit
+\echo Use "CREATE EXTENSION gpt_query_to_sql" to load this file. \quit
 
-CREATE OR REPLACE FUNCTION my_get_sum() RETURNS  text
-AS '$libdir/my_get_sum'
+CREATE OR REPLACE FUNCTION gpt_query_to_sql() RETURNS  text
+AS '$libdir/gpt_query_to_sql'
 LANGUAGE C IMMUTABLE STRICT;
