@@ -1,7 +1,14 @@
-To run:
+# To run:
+
 make
 make install
 
-Inside postgres(psql):
+# Inside postgres(psql):
+
 CREATE EXTENSION my_get_sum;
 SELECT my_get_sum(1,2);
+
+# Path of files in postgresql
+
+/usr/share/postgresql/15/extension/my_get_sum--0.0.1.sql
+/usr/share/postgresql/15/extension/my_get_sum.control
