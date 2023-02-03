@@ -1,0 +1,7 @@
+To run:
+make
+make install
+
+Inside postgres(psql):
+CREATE EXTENSION my_get_sum;
+SELECT my_get_sum(1,2);
