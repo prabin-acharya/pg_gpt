@@ -1,7 +1,7 @@
-MODULES = my_get_sum
-EXTENSION = my_get_sum     # the extersion's name
-DATA = my_get_sum--0.0.1.sql    # script file to install
-REGRESS = my_get_sum_test      # the test script file
+MODULES = gpt_query_to_sql
+EXTENSION = gpt_query_to_sql     # the extersion's name
+DATA = gpt_query_to_sql--0.0.1.sql    # script file to install
+REGRESS = gpt_query_to_sql_test      # the test script file
 
 PG_LDFLAGS = -lcurl
 # for posgres build

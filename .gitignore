@@ -1,4 +1,4 @@
-my_get_sum.bc
-my_get_sum.o
-my_get_sum.so
+gpt_query_to_sql.bc
+gpt_query_to_sql.o
+gpt_query_to_sql.so
 .vscode/
