@@ -5,10 +5,10 @@ make install
 
 # Inside postgres(psql):
 
-CREATE EXTENSION gpt_query_to_sql;
-SELECT gpt_query_to_sql();
+CREATE EXTENSION pg_gpt;
+SELECT pg_gpt();
 
 # Path of files in postgresql
 
-/usr/share/postgresql/15/extension/gpt_query_to_sql--0.0.1.sql
-/usr/share/postgresql/15/extension/gpt_query_to_sql_sum.control
+/usr/share/postgresql/15/extension/pg_gpt--0.0.1.sql
+/usr/share/postgresql/15/extension/pg_gpt_sum.control

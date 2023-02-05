@@ -1,5 +1,5 @@
-# gpt_query_to_sql postgresql extension
+# pg_gpt postgresql extension
 comment = 'generate sql from gpt query'
 default_version = '0.0.1'
-module_pathname = '$libdir/gpt_query_to_sql'
+module_pathname = '$libdir/pg_gpt'
 relocatable = false

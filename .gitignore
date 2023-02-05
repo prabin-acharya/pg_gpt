@@ -1,4 +1,4 @@
-gpt_query_to_sql.bc
-gpt_query_to_sql.o
-gpt_query_to_sql.so
+pg_gpt.bc
+pg_gpt.o
+pg_gpt.so
 .vscode/

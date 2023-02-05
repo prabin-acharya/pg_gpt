@@ -1,8 +1,8 @@
 --complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION gpt_query_to_sql" to load this file. \quit
+\echo Use "CREATE EXTENSION pg_gpt" to load this file. \quit
 
-CREATE OR REPLACE FUNCTION gpt_query_to_sql(text) RETURNS  text
-AS '$libdir/gpt_query_to_sql'
+CREATE OR REPLACE FUNCTION pg_gpt(text) RETURNS  text
+AS '$libdir/pg_gpt'
 LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION concat_numbers(a INTEGER, b INTEGER)

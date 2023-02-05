@@ -60,9 +60,9 @@ const char *get_text(const char *json)
     return replace_newline(text);
 }
 
-PG_FUNCTION_INFO_V1(gpt_query_to_sql);
+PG_FUNCTION_INFO_V1(pg_gpt);
 
-Datum gpt_query_to_sql(PG_FUNCTION_ARGS)
+Datum pg_gpt(PG_FUNCTION_ARGS)
 {
 
     text *natural_query_text = PG_GETARG_TEXT_P(0);

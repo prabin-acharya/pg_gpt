@@ -1,7 +1,7 @@
-MODULES = gpt_query_to_sql
-EXTENSION = gpt_query_to_sql     # the extersion's name
-DATA = gpt_query_to_sql--0.0.1.sql    # script file to install
-REGRESS = gpt_query_to_sql_test      # the test script file
+MODULES = pg_gpt
+EXTENSION = pg_gpt    # the extersion's name
+DATA = pg_gpt--0.0.1.sql    # script file to install
+REGRESS = pg_gpt_test      # the test script file
 
 PG_LDFLAGS = -lcurl
 # for posgres build
