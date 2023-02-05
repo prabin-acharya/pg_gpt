@@ -1,4 +1,3 @@
-
 #include <postgres.h>
 #include <fmgr.h>
 #include <utils/builtins.h>
@@ -25,18 +24,27 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
-char *replace_newline(char *str)
+char *replace_newline(char *src)
 {
-    char *dst = str;
-    for (const char *src = str; *src != '\0'; ++src)
+    int i, j, len;
+    char *dst = NULL;
+    len = strlen(src);
+    dst = malloc((len + 1) * sizeof(char));
+
+    for (i = 0, j = 0; i < len; i++)
     {
-        if (*src != '\n')
+        if (src[i] == '\n')
         {
-            *dst++ = *src;
+            dst[j++] = ' ';
+        }
+        else
+        {
+            dst[j++] = src[i];
         }
     }
-    *dst = '\0';
-    return str;
+    dst[j] = '\0';
+
+    return dst;
 }
 
 const char *get_text(const char *json)
@@ -54,10 +62,10 @@ const char *get_text(const char *json)
         return "text not found";
     }
     int text_len = text_end - text_start;
-    char *text = (char *)malloc(4096 * sizeof(char));
+    char *text = (char *)malloc(text_len + 1);
     strncpy(text, text_start, text_len);
     text[text_len] = '\0';
-    return replace_newline(text);
+    return text;
 }
 
 PG_FUNCTION_INFO_V1(pg_gpt);
@@ -103,10 +111,11 @@ Datum pg_gpt(PG_FUNCTION_ARGS)
     for (i = 0; i < SPI_processed; i++)
     {
         tuple = tuptable->vals[i];
-        snprintf(db_schema, 2048, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
+        snprintf(db_schema, 4096, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
     }
-    headers = curl_slist_append(headers, API_HEADER1);
-    headers = curl_slist_append(headers, API_HEADER2);
+
+    // =======================================================
+
     curl = curl_easy_init();
     if (!curl)
     {
@@ -115,11 +124,11 @@ Datum pg_gpt(PG_FUNCTION_ARGS)
 
     char *api_url2 = "http://localhost:3000/api/hello";
 
-    json_result = palloc(4096 * sizeof(char));
-    snprintf(json_result, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
-
     headers = curl_slist_append(headers, API_HEADER1);
     headers = curl_slist_append(headers, API_HEADER2);
+
+    json_result = palloc(4096 * sizeof(char));
+    snprintf(json_result, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
 
     curl_easy_setopt(curl, CURLOPT_URL, API_URL);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -138,5 +147,5 @@ Datum pg_gpt(PG_FUNCTION_ARGS)
 
     SPI_finish();
 
-    PG_RETURN_TEXT_P(cstring_to_text(replace_newline(get_text(response))));
+    PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
 }
