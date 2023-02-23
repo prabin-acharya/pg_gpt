@@ -6,6 +6,7 @@
 #include <catalog/pg_class.h>
 #include <executor/spi.h>
 #include <utils/typcache.h>
+#include <libpq-fe.h>
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
