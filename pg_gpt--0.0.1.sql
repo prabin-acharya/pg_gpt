@@ -6,4 +6,10 @@ CREATE OR REPLACE FUNCTION gpt_query(text) RETURNS  text
 AS '$libdir/pg_gpt' , 'gpt_query'
 LANGUAGE C IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION gpt_explain(text) RETURNS  text
+AS '$libdir/pg_gpt' , 'gpt_explain'
+LANGUAGE C IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION gpt_query_plan(text) RETURNS  text
+AS '$libdir/pg_gpt' , 'gpt_explain'
+LANGUAGE C IMMUTABLE STRICT;
