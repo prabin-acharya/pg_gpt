@@ -69,9 +69,9 @@ const char *get_text(const char *json)
     return text;
 }
 
-PG_FUNCTION_INFO_V1(pg_gpt);
+PG_FUNCTION_INFO_V1(gpt_query);
 
-Datum pg_gpt(PG_FUNCTION_ARGS)
+Datum gpt_query(PG_FUNCTION_ARGS)
 {
 
     text *natural_query_text = PG_GETARG_TEXT_P(0);
