@@ -50,23 +50,27 @@ char *replace_newline(char *src)
 
 const char *get_text(const char *json)
 {
-    const char *text_key = "\"text\":\"";
-    const char *text_start = strstr(json, text_key);
-    if (text_start == NULL)
+    char *start, *end;
+
+    start = strstr(json, "\"text\":\"");
+    if (start == NULL)
     {
-        return "text not found";
+        return NULL;
     }
-    text_start += strlen(text_key);
-    const char *text_end = strchr(text_start, '"');
-    if (text_end == NULL)
+
+    start += strlen("\"text\":\"");
+    end = strstr(start, "\",\"index\"");
+    if (end == NULL)
     {
-        return "text not found";
+        return NULL;
     }
-    int text_len = text_end - text_start;
-    char *text = (char *)malloc(text_len + 1);
-    strncpy(text, text_start, text_len);
-    text[text_len] = '\0';
-    return text;
+
+    int length = end - start;
+    char *result = malloc(4096);
+    strncpy(result, start, length);
+    result[length] = '\0';
+
+    return result;
 }
 
 // function to make the request to OpenAI API
@@ -152,7 +156,7 @@ Datum gpt_query(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
@@ -169,7 +173,7 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, For a SQL Query expain the query in natural language clearly in a single line.  Query:%s\\n Explanation:\"}", replace_newline(db_schema), natural_query);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, For a SQL Query expain the query in natural language clearly in a single line.  Query:%s\\n Explanation:\"}", replace_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
@@ -187,7 +191,7 @@ Datum gpt_plan(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query write a Query plan.  Query:%s\\n Query Plan:\"}", replace_newline(db_schema), natural_query);
+    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query write a Query plan.  Query:%s\\n Query Plan:\"}", replace_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
