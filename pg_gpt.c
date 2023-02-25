@@ -12,7 +12,8 @@
 PG_MODULE_MAGIC;
 #endif
 
-#define API_URL "https://api.openai.com/v1/completions"
+// #define API_URL "https://api.openai.com/v1/completions"
+#define API_URL "http://localhost:3000/api/hello"
 #define API_HEADER1 "Content-Type: application/json"
 #define API_HEADER2 "Authorization: Bearer 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"
 
@@ -69,55 +70,13 @@ const char *get_text(const char *json)
     return text;
 }
 
-PG_FUNCTION_INFO_V1(gpt_query);
-PG_FUNCTION_INFO_V1(gpt_explain);
-PG_FUNCTION_INFO_V1(gpt_plan);
-
-Datum gpt_query(PG_FUNCTION_ARGS)
+// function to make the request to OpenAI API
+void request_openAI(const char *req_body, char *response)
 {
-
-    text *natural_query_text = PG_GETARG_TEXT_P(0);
-    char *natural_query = text_to_cstring(natural_query_text);
-
     CURL *curl;
     CURLcode res;
-
     struct curl_slist *headers = NULL;
-
-    char response[4096] = {0};
-
-    int ret;
-    int i;
-    TupleDesc tupdesc;
-    SPITupleTable *tuptable;
-    HeapTuple tuple;
-    char *db_schema = NULL;
-    char *json_result = NULL;
-
-    ret = SPI_connect();
-    if (ret != SPI_OK_CONNECT)
-    {
-        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
-    }
-
-    ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_table FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema = 'bookings' GROUP BY table_name ORDER BY table_name) as subquery;", 0);
-    if (ret != SPI_OK_SELECT)
-    {
-        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_exec failed")));
-    }
-
-    tupdesc = SPI_tuptable->tupdesc;
-    tuptable = SPI_tuptable;
-    db_schema = palloc(4096 * sizeof(char));
-    strcpy(db_schema, "");
-
-    for (i = 0; i < SPI_processed; i++)
-    {
-        tuple = tuptable->vals[i];
-        snprintf(db_schema, 4096, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
-    }
-
-    // =======================================================
+    // char response[4096] = {0};
 
     curl = curl_easy_init();
     if (!curl)
@@ -128,25 +87,155 @@ Datum gpt_query(PG_FUNCTION_ARGS)
     headers = curl_slist_append(headers, API_HEADER1);
     headers = curl_slist_append(headers, API_HEADER2);
 
-    json_result = palloc(4096 * sizeof(char));
-    snprintf(json_result, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
+    char *json_result = palloc(4096 * sizeof(char));
+    // snprintf(json_result, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), prompt);
 
     curl_easy_setopt(curl, CURLOPT_URL, API_URL);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_result);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req_body);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, response);
 
     res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
-        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_perform failed: %s", curl_easy_strerror(res))));
+        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_perform() failed: %s", curl_easy_strerror(res))));
     }
 
     curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
+
+    // return response;
+}
+
+// function to get the schema of the database
+void get_schema_of_db(char *db_schema)
+{
+    int ret;
+    int i;
+    TupleDesc tupdesc;
+    SPITupleTable *tuptable;
+    HeapTuple tuple;
+
+    // connect to database
+    ret = SPI_connect();
+    if (ret != SPI_OK_CONNECT)
+    {
+        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
+    }
+
+    // execute the query
+    ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_table FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema = 'bookings' GROUP BY table_name ORDER BY table_name) as subquery;", 0);
+    if (ret != SPI_OK_SELECT)
+    {
+        ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_exec failed")));
+    }
+
+    tupdesc = SPI_tuptable->tupdesc;
+    tuptable = SPI_tuptable;
+    // db_schema = palloc(4096 * sizeof(char));
+    strcpy(db_schema, "");
+
+    for (i = 0; i < SPI_processed; i++)
+    {
+        tuple = tuptable->vals[i];
+        snprintf(db_schema, 4096, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
+    }
 
     SPI_finish();
+}
+
+PG_FUNCTION_INFO_V1(gpt_query);
+PG_FUNCTION_INFO_V1(gpt_explain);
+PG_FUNCTION_INFO_V1(gpt_plan);
+
+Datum gpt_query(PG_FUNCTION_ARGS)
+{
+
+    text *natural_query_text = PG_GETARG_TEXT_P(0);
+    char *natural_query = text_to_cstring(natural_query_text);
+
+    // int ret;
+    // int i;
+    // TupleDesc tupdesc;
+    // SPITupleTable *tuptable;
+    // HeapTuple tuple;
+    // char *db_schema = NULL;
+    // db_schema = palloc(4096 * sizeof(char));
+
+    // char *json_result = NULL;
+
+    // // connect to database
+    // ret = SPI_connect();
+    // if (ret != SPI_OK_CONNECT)
+    // {
+    //     ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
+    // }
+
+    // // execute the query to get the schema of the database
+    // ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_table FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema = 'bookings' GROUP BY table_name ORDER BY table_name) as subquery;", 0);
+    // if (ret != SPI_OK_SELECT)
+    // {
+    //     ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_exec failed")));
+    // }
+
+    // tupdesc = SPI_tuptable->tupdesc;
+    // tuptable = SPI_tuptable;
+    // db_schema = palloc(4096 * sizeof(char));
+    // strcpy(db_schema, "");
+
+    // for (i = 0; i < SPI_processed; i++)
+    // {
+    //     tuple = tuptable->vals[i];
+    //     snprintf(db_schema, 4096, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
+    // }
+
+    // SPI_finish();
+
+    // char *db_schema = NULL;
+    // db_schema = palloc(4096 * sizeof(char));
+
+    // char *json_result = NULL;
+    char *db_schema[4096] = {0};
+
+    get_schema_of_db(db_schema);
+
+    // make the request to OpenAI API
+    // CURL *curl;
+    // CURLcode res;
+    // struct curl_slist *headers = NULL;
+    // char response[4096] = {0};
+
+    // curl = curl_easy_init();
+    // if (!curl)
+    // {
+    //     ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_init failed")));
+    // }
+
+    // headers = curl_slist_append(headers, API_HEADER1);
+    // headers = curl_slist_append(headers, API_HEADER2);
+
+    // json_result = palloc(4096 * sizeof(char));
+    // snprintf(json_result, 4096, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
+
+    // curl_easy_setopt(curl, CURLOPT_URL, API_URL);
+    // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_result);
+    // curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    // curl_easy_setopt(curl, CURLOPT_WRITEDATA, response);
+
+    // res = curl_easy_perform(curl);
+    // if (res != CURLE_OK)
+    //     ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_perform failed: %s", curl_easy_strerror(res))));
+
+    // curl_easy_cleanup(curl);
+
+    char response[4096] = {0};
+    char *req_body[4096] = {0};
+
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",\r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
+
+    request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
 }
