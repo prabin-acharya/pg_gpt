@@ -143,7 +143,7 @@ void get_schema_of_db(char *db_schema)
 
 PG_FUNCTION_INFO_V1(gpt_query);
 PG_FUNCTION_INFO_V1(gpt_explain);
-PG_FUNCTION_INFO_V1(gpt_plan);
+PG_FUNCTION_INFO_V1(gpt_explain_plan);
 
 Datum gpt_query(PG_FUNCTION_ARGS)
 {
@@ -179,7 +179,7 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
 }
 
-Datum gpt_plan(PG_FUNCTION_ARGS)
+Datum gpt_explain_plan(PG_FUNCTION_ARGS)
 {
 
     text *natural_query_text = PG_GETARG_TEXT_P(0);
