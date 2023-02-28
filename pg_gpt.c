@@ -121,8 +121,8 @@ void get_schema_of_db(char *db_schema)
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
     }
 
-    // execute the query to get schema of the database
-    ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_table FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema = 'bookings' GROUP BY table_name ORDER BY table_name) as subquery;", 0);
+    // get formatted schema fo the database  as  table_name(column_name, column_name, ...)
+    ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_db_schema FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog','information_schema') GROUP BY table_name ORDER BY table_name) as subquery;", 0);
     if (ret != SPI_OK_SELECT)
     {
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_exec failed")));
