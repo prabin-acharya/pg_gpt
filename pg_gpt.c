@@ -186,7 +186,7 @@ Datum gpt_explain_plan(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query write a Query plan.  Query:%s\\n Query Plan:\"}", replace_newline(db_schema), natural_query);
+    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan in natural language in clear and concise way. Query:%s\\n Query Plan:\"}", replace_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
