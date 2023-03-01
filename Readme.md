@@ -9,8 +9,8 @@
 
 ### Install dependencies
 
-postgresql, postgresql-server-dev-xx
-gcc
+postgresql, postgresql-server-dev-xx  
+gcc  
 libcurl
 
 ### Set OPENAI API Key
