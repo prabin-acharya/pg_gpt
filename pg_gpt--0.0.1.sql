@@ -14,3 +14,6 @@ CREATE OR REPLACE FUNCTION gpt_explain_plan(text) RETURNS  text
 AS '$libdir/pg_gpt' , 'gpt_explain_plan'
 LANGUAGE C IMMUTABLE STRICT;
 
+-- select gpt_query('list all passengers on flight no. PG0134');
+-- select gpt_query('passenger on flight no. PG0134 with the most expensive ticket');
+-- select gpt_query('list of all  passengers  with their ticket amount on flight no PG0134 ');

@@ -1,12 +1,12 @@
 MODULES = pg_gpt
-EXTENSION = pg_gpt    # the extension's name
-DATA = pg_gpt--0.0.1.sql    # script file to install
-REGRESS = pg_gpt_test      # the test script file
+EXTENSION = pg_gpt    
+DATA = pg_gpt--0.0.1.sql    
+REGRESS = pg_gpt_test   
 
-PG_LDFLAGS = -lpq -lcurl
+PG_LDFLAGS = -lcurl
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 
-CFLAGS = -I/usr/include/postgresql
+# CFLAGS = -I/usr/include/postgresql
 
 include $(PGXS)

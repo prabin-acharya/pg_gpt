@@ -1,12 +1,7 @@
 #include <postgres.h>
-#include <fmgr.h>
 #include <utils/builtins.h>
 #include <curl/curl.h>
-#include <catalog/pg_namespace.h>
-#include <catalog/pg_class.h>
 #include <executor/spi.h>
-#include <utils/typcache.h>
-#include <libpq-fe.h>
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -73,7 +68,7 @@ const char *get_text(const char *json)
     return result;
 }
 
-// function to make the request to OpenAI API
+// request to OpenAI API
 void request_openAI(const char *req_body, char *response)
 {
     CURL *curl;
@@ -105,7 +100,7 @@ void request_openAI(const char *req_body, char *response)
     curl_slist_free_all(headers);
 }
 
-// function to get the schema of the database
+// get schema of the database
 void get_schema_of_db(char *db_schema)
 {
     int ret;
@@ -121,7 +116,7 @@ void get_schema_of_db(char *db_schema)
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
     }
 
-    // get formatted schema fo the database  as  table_name(column_name, column_name, ...)
+    // get formatted schema of the database  as  table_name(column_name, column_name, ...)
     ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_db_schema FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog','information_schema') GROUP BY table_name ORDER BY table_name) as subquery;", 0);
     if (ret != SPI_OK_SELECT)
     {
