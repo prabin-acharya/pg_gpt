@@ -2,6 +2,7 @@
 #include <utils/builtins.h>
 #include <curl/curl.h>
 #include <executor/spi.h>
+#include "secrets.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -9,7 +10,7 @@ PG_MODULE_MAGIC;
 
 #define API_URL "https://api.openai.com/v1/completions"
 #define API_HEADER1 "Content-Type: application/json"
-#define API_HEADER2 "Authorization: Bearer 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"
+#define API_HEADER2 "Authorization: Bearer " SECRET_API_KEY
 
 static size_t
 write_callback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -176,7 +177,6 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
 
 Datum gpt_explain_plan(PG_FUNCTION_ARGS)
 {
-
     text *natural_query_text = PG_GETARG_TEXT_P(0);
     char *natural_query = text_to_cstring(natural_query_text);
 
