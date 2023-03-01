@@ -1,14 +1,43 @@
-# To run:
+## Installation
 
-make
-make install
+### Clone the repository
 
-# Inside postgres(psql):
+`git clone https://github.com/prabin-acharya/pg_gpt`  
+`cd pg_gpt`   
 
-CREATE EXTENSION pg_gpt;
-SELECT pg_gpt();
+### Install dependencies
+postgresql  
+curl  
 
-# Path of files in postgresql
+### Set OPENAI API Key
+Set your secret OPENAI API key in the file `secrets.h`
 
-/usr/share/postgresql/15/extension/pg_gpt--0.0.1.sql
-/usr/share/postgresql/15/extension/pg_gpt_sum.control
+### Compile the extension:
+
+ `make`  
+ `sudo make install`
+
+### Install
+
+Enter the postgres shell: `psql`  
+ Connect to the database you want to install the extensionn in: `\c demo`  
+ Install extension: `create extension pg_gpt;`  
+
+Voila!. Now, you can execute any of the follwoing functions:  
+
+
+## Functions  
+### gpt_query(text, boolean)
+ generates a query and optionally executes it  
+ eg. `SELECT gpt_query('list all passengers on flight no. PG0134');`   
+ => SELECT * FROM passengers WHERE flight_no = 'PG0134';  
+ eg. `select gpt_query('update seat no 2A of aircraft 319 to Economy', true);`  
+ =>
+### gpt_explain(text)
+  explains a query in natural language  
+  eg. `SELECT gpt_explain('select * from flights where flight_no = 1234');`    
+  => 
+### gpt_explain_plan(text)
+  explains a query plan in natural language  
+  eg. `SELECT gpt_explain_plan('select * from flights where flight_no = 1234');`  
+  => 

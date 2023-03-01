@@ -2,3 +2,4 @@ pg_gpt.bc
 pg_gpt.o
 pg_gpt.so
 .vscode/
+secrets.h
