@@ -1,4 +1,4 @@
-**pg_gpt** is a postgres extension that uses OpenAI's GPT-3 API to generate SQL queries from natural language. It also provides functions to explain SQL queries and query plans in natural language.
+**pg_gpt** is a postgres extension that uses OpenAI's GPT-3 API to generate SQL queries from natural language. It can also explain SQL queries and query plans in natural language.
 
 ## Installation
 
