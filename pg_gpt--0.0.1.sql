@@ -6,6 +6,7 @@ CREATE OR REPLACE FUNCTION gpt_natural_to_sql(text) RETURNS  text
 AS '$libdir/pg_gpt' , 'gpt_query'
 LANGUAGE C IMMUTABLE STRICT;
 
+
 CREATE OR REPLACE FUNCTION gpt_query(natural_lang_query text, execute boolean DEFAULT false) RETURNS  text
 AS $$
 DECLARE 
@@ -21,9 +22,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 CREATE OR REPLACE FUNCTION gpt_explain(text) RETURNS  text
 AS '$libdir/pg_gpt' , 'gpt_explain'
 LANGUAGE C IMMUTABLE STRICT;
+
 
 CREATE OR REPLACE FUNCTION gpt_explain_plan(text) RETURNS  text
 AS '$libdir/pg_gpt' , 'gpt_explain_plan'

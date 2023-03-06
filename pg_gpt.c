@@ -21,7 +21,7 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
-char *replace_newline(char *src)
+char *remove_newline(char *src)
 {
     int i, j, len;
     char *dst = NULL;
@@ -44,6 +44,7 @@ char *replace_newline(char *src)
     return dst;
 }
 
+// grabs the text from the API response
 const char *get_text(const char *json)
 {
     char *start, *end;
@@ -131,7 +132,7 @@ void get_schema_of_db(char *db_schema)
     for (i = 0; i < SPI_processed; i++)
     {
         tuple = tuptable->vals[i];
-        snprintf(db_schema, 4096, "%s%s\\n", db_schema, replace_newline(SPI_getvalue(tuple, tupdesc, 1)));
+        snprintf(db_schema, 4096, "%s%s\\n", db_schema, remove_newline(SPI_getvalue(tuple, tupdesc, 1)));
     }
 
     SPI_finish();
@@ -152,7 +153,7 @@ Datum gpt_query(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", replace_newline(db_schema), natural_query);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", remove_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
@@ -169,7 +170,7 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, For a SQL Query expain the query in natural language clearly in a single line.  Query:%s\\n Explanation:\"}", replace_newline(db_schema), natural_query);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, For a SQL Query expain the query in natural language clearly in a single line.  Query:%s\\n Explanation:\"}", remove_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
@@ -186,7 +187,7 @@ Datum gpt_explain_plan(PG_FUNCTION_ARGS)
     char response[4096] = {0};
     char *req_body[4096] = {0};
 
-    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan in natural language in clear and concise way. Query:%s\\n Query Plan:\"}", replace_newline(db_schema), natural_query);
+    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan in natural language in clear and concise way. Query:%s\\n Query Plan:\"}", remove_newline(db_schema), natural_query);
     request_openAI(req_body, response);
 
     PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
