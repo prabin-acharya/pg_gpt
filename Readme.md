@@ -1,28 +1,28 @@
 **pg_gpt** is a postgres extension that uses OpenAI's GPT-3 API to generate SQL queries from natural language. It can also explain SQL queries and query plans in natural language.
 
-## Installation
+## Installation Steps
 
-#### Clone the repository
+#### 1. Clone the repository
 
 `git clone https://github.com/prabin-acharya/pg_gpt`  
 `cd pg_gpt`
 
-#### Install dependencies
+#### 2. Install dependencies
 
 - postgresql, postgresql-server-dev-xx
 - gcc
 - libcurl
 
-#### Set OPENAI API Key
+#### 3. Set OPENAI API Key
 
 Set your secret OPENAI API key in the file `secrets.h`
 
-#### Compile the extension:
+#### 4. Compile the extension:
 
 `make`  
  `sudo make install`
 
-#### Install
+#### 5. Install
 
 Enter the postgres shell: `psql`  
  Connect to the database you want to install the extension in: `\c demo`  

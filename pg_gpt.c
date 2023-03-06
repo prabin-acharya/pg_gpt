@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 #include <executor/spi.h>
 #include "secrets.h"
+#include <string.h>
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -12,7 +13,6 @@ PG_MODULE_MAGIC;
 #define API_HEADER1 "Content-Type: application/json"
 #define API_HEADER2 "Authorization: Bearer " SECRET_API_KEY
 
-static size_t
 write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
@@ -44,38 +44,13 @@ char *remove_newline(char *src)
     return dst;
 }
 
-// grabs the text from the API response
-const char *get_text(const char *json)
-{
-    char *start, *end;
-
-    start = strstr(json, "\"text\":\"");
-    if (start == NULL)
-    {
-        return NULL;
-    }
-
-    start += strlen("\"text\":\"");
-    end = strstr(start, "\",\"index\"");
-    if (end == NULL)
-    {
-        return NULL;
-    }
-
-    int length = end - start;
-    char *result = malloc(4096);
-    strncpy(result, start, length);
-    result[length] = '\0';
-
-    return result;
-}
-
 // request to OpenAI API
-void request_openAI(const char *req_body, char *response)
+char *request_openAI(const char *req_body)
 {
     CURL *curl;
     CURLcode res;
     struct curl_slist *headers = NULL;
+    char *response = malloc(4096);
 
     curl = curl_easy_init();
     if (!curl)
@@ -100,16 +75,19 @@ void request_openAI(const char *req_body, char *response)
 
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
+
+    return response;
 }
 
-// get schema of the database
-void get_schema_of_db(char *db_schema)
+char *get_schema_of_db()
 {
     int ret;
     int i;
     TupleDesc tupdesc;
     SPITupleTable *tuptable;
     HeapTuple tuple;
+
+    char *db_schema = malloc(4096);
 
     // connect to database
     ret = SPI_connect();
@@ -136,6 +114,34 @@ void get_schema_of_db(char *db_schema)
     }
 
     SPI_finish();
+
+    return db_schema;
+}
+
+// grabs the text from the API response
+const char *get_text(const char *json)
+{
+    char *start, *end;
+
+    start = strstr(json, "\"text\":\"");
+    if (start == NULL)
+    {
+        return "Error! Something went Wrong. Make sure you are using a valid API key. You should add your API key to secrets.h.";
+    }
+
+    start += strlen("\"text\":\"");
+    end = strstr(start, "\",\"index\"");
+    if (end == NULL)
+    {
+        return NULL;
+    }
+
+    int length = end - start;
+    char *result = malloc(4096);
+    strncpy(result, start, length);
+    result[length] = '\0';
+
+    return result;
 }
 
 PG_FUNCTION_INFO_V1(gpt_query);
@@ -144,51 +150,63 @@ PG_FUNCTION_INFO_V1(gpt_explain_plan);
 
 Datum gpt_query(PG_FUNCTION_ARGS)
 {
-    text *natural_query_text = PG_GETARG_TEXT_P(0);
-    char *natural_query = text_to_cstring(natural_query_text);
+    char *natural_query = text_to_cstring(PG_GETARG_TEXT_P(0));
 
-    char *db_schema[4096] = {0};
-    get_schema_of_db(db_schema);
+    char *db_schema;
+    db_schema = get_schema_of_db();
 
-    char response[4096] = {0};
     char *req_body[4096] = {0};
+    char *json;
+    char *text;
+    char *sql_query;
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a  query to databse in natural language and you should translate them to appropriate SQL command according to the Postgres Tables for that. Also make sure the table exists in the given data and if it does not exist match the closest. Also write SQL command in a single line.  Query:%s\\n SQL:\"}", remove_newline(db_schema), natural_query);
-    request_openAI(req_body, response);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . For the description below, write appropriate SQL query in a single line. Make sure the table exists in the database. Description:%s\\n SQL:\"}", db_schema, natural_query);
+    json = request_openAI(req_body);
+    text = get_text(json);
 
-    PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
+    PG_RETURN_TEXT_P(cstring_to_text(text));
 }
 
 Datum gpt_explain(PG_FUNCTION_ARGS)
 {
-    text *natural_query_text = PG_GETARG_TEXT_P(0);
-    char *natural_query = text_to_cstring(natural_query_text);
+    char *sql_query = text_to_cstring(PG_GETARG_TEXT_P(0));
 
-    char *db_schema[4096] = {0};
-    get_schema_of_db(db_schema);
+    char *db_schema;
+    db_schema = get_schema_of_db();
 
-    char response[4096] = {0};
     char *req_body[4096] = {0};
+    char *json;
+    char *text;
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, For a SQL Query expain the query in natural language clearly in a single line.  Query:%s\\n Explanation:\"}", remove_newline(db_schema), natural_query);
-    request_openAI(req_body, response);
+    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a SQL query and you should write a clear and concise explanation of the query in natural language. SQL Query:%s\\n Explanation:\"}", db_schema, sql_query);
+    json = request_openAI(req_body);
+    text = get_text(json);
 
-    PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
+    free(sql_query);
+    free(db_schema);
+    free(json);
+
+    PG_RETURN_TEXT_P(cstring_to_text(text));
 }
 
 Datum gpt_explain_plan(PG_FUNCTION_ARGS)
 {
-    text *natural_query_text = PG_GETARG_TEXT_P(0);
-    char *natural_query = text_to_cstring(natural_query_text);
+    char *sql_query = text_to_cstring(PG_GETARG_TEXT_P(0));
 
-    char *db_schema[4096] = {0};
-    get_schema_of_db(db_schema);
+    char *db_schema;
+    db_schema = get_schema_of_db();
 
-    char response[4096] = {0};
     char *req_body[4096] = {0};
+    char *json;
+    char *text;
 
-    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan in natural language in clear and concise way. Query:%s\\n Query Plan:\"}", remove_newline(db_schema), natural_query);
-    request_openAI(req_body, response);
+    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan clearly and concisely. Query:%s\\n Query Plan:\"}", db_schema, sql_query);
+    json = request_openAI(req_body);
+    text = get_text(json);
 
-    PG_RETURN_TEXT_P(cstring_to_text(get_text(response)));
+    free(sql_query);
+    free(db_schema);
+    free(json);
+
+    PG_RETURN_TEXT_P(cstring_to_text(text));
 }
