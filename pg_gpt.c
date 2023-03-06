@@ -158,7 +158,6 @@ Datum gpt_query(PG_FUNCTION_ARGS)
     char *req_body[4096] = {0};
     char *json;
     char *text;
-    char *sql_query;
 
     sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . For the description below, write appropriate SQL query in a single line. Make sure the table exists in the database. Description:%s\\n SQL:\"}", db_schema, natural_query);
     json = request_openAI(req_body);
@@ -182,10 +181,6 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
     json = request_openAI(req_body);
     text = get_text(json);
 
-    free(sql_query);
-    free(db_schema);
-    free(json);
-
     PG_RETURN_TEXT_P(cstring_to_text(text));
 }
 
@@ -203,10 +198,6 @@ Datum gpt_explain_plan(PG_FUNCTION_ARGS)
     snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan clearly and concisely. Query:%s\\n Query Plan:\"}", db_schema, sql_query);
     json = request_openAI(req_body);
     text = get_text(json);
-
-    free(sql_query);
-    free(db_schema);
-    free(json);
 
     PG_RETURN_TEXT_P(cstring_to_text(text));
 }
