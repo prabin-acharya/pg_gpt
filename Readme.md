@@ -2,39 +2,39 @@
 
 ## Installation
 
-### Clone the repository
+#### Clone the repository
 
 `git clone https://github.com/prabin-acharya/pg_gpt`  
 `cd pg_gpt`
 
-### Install dependencies
+#### Install dependencies
 
-postgresql, postgresql-server-dev-xx  
-gcc  
-libcurl
+- postgresql, postgresql-server-dev-xx
+- gcc
+- libcurl
 
-### Set OPENAI API Key
+#### Set OPENAI API Key
 
 Set your secret OPENAI API key in the file `secrets.h`
 
-### Compile the extension:
+#### Compile the extension:
 
 `make`  
  `sudo make install`
 
-### Install
+#### Install
 
 Enter the postgres shell: `psql`  
- Connect to the database you want to install the extensionn in: `\c demo`  
+ Connect to the database you want to install the extension in: `\c demo`  
  Install extension: `create extension pg_gpt;`
 
-Voila!. Now, you can execute any of the follwoing functions:
+Voila!. Now, you can execute any of the following functions:
 
-## Functions
+### Functions
 
-### gpt_query(text, boolean)
+#### gpt_query(text, boolean)
 
-**generates a query and optionally executes it**
+generates a query and optionally executes it
 
 eg. select gpt_query('list all passengers on flight no. PG0134');  
  => `SELECT * FROM passengers WHERE flight_no = 'PG0134';`
@@ -45,16 +45,16 @@ eg. select gpt_query(' list passenger name, contact data, booking date and ticke
 eg. select gpt_query('update seat no 2A of aircraft 319 to Economy', true);  
  => `UPDATE seats SET fare_conditions='Economy' WHERE seat_no='2A' AND aircraft_code='319';`
 
-### gpt_explain(text)
+#### gpt_explain(text)
 
-**explains query in natural language**
+explains query in natural language
 
 eg. SELECT gpt_explain('SELECT f.departure_airport, COUNT(\*) AS num_flights FROM flights f WHERE f.status=''On Time'' GROUP BY f.departure_airport');  
  => `"This query counts the number of flights that departed on time from each departure airport."`
 
-### gpt_explain_plan(text)
+#### gpt_explain_plan(text)
 
-**explains query plan in natural language**
+explains query plan in natural language
 
 eg. select gpt_explain_plan('SELECT f.departure_airport, COUNT(\*) AS num_flights FROM flights f WHERE f.status=' 'On Time' ' GROUP BY f.departure_airport;');  
  => `"The database engine will start by scanning through the flights table to select all rows with a status of 'On Time'. It will then group the results by departure airport and count the number of flights for each airport. Finally it will return the departure airport and the corresponding count of flights."`
