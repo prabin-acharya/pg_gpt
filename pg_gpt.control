@@ -1,5 +1,5 @@
 # pg_gpt postgresql extension
-comment = 'generate sql from gpt query'
+comment = 'generate SQL queries from natural language'
 default_version = '0.0.1'
 module_pathname = '$libdir/pg_gpt'
 relocatable = false
