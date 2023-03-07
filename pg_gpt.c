@@ -9,7 +9,7 @@
 PG_MODULE_MAGIC;
 #endif
 
-#define API_URL "https://api.openai.com/v1/completions"
+#define API_URL "https://api.openai.com/v1/chat/completions"
 #define API_HEADER1 "Content-Type: application/json"
 #define API_HEADER2 "Authorization: Bearer " SECRET_API_KEY
 
@@ -30,9 +30,10 @@ char *remove_newline(char *src)
 
     for (i = 0, j = 0; i < len; i++)
     {
-        if (src[i] == '\n')
+        if (src[i] == '\\' && src[i + 1] == 'n')
         {
             dst[j++] = ' ';
+            i++;
         }
         else
         {
@@ -55,6 +56,7 @@ char *request_openAI(const char *req_body)
     curl = curl_easy_init();
     if (!curl)
     {
+        free(response);
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_init failed")));
     }
 
@@ -70,6 +72,7 @@ char *request_openAI(const char *req_body)
     res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
+        free(response);
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("curl_easy_perform() failed: %s", curl_easy_strerror(res))));
     }
 
@@ -89,10 +92,10 @@ char *get_schema_of_db()
 
     char *db_schema = malloc(4096);
 
-    // connect to database
     ret = SPI_connect();
     if (ret != SPI_OK_CONNECT)
     {
+        free(db_schema);
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_connect failed")));
     }
 
@@ -100,6 +103,7 @@ char *get_schema_of_db()
     ret = SPI_exec("SELECT CONCAT(table_name, '(', column_names, ')') as formatted_db_schema FROM (SELECT table_name, string_agg(column_name, ', ') as column_names FROM information_schema.columns WHERE table_schema NOT IN ('pg_catalog','information_schema') GROUP BY table_name ORDER BY table_name) as subquery;", 0);
     if (ret != SPI_OK_SELECT)
     {
+        free(db_schema);
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("SPI_exec failed")));
     }
 
@@ -110,7 +114,7 @@ char *get_schema_of_db()
     for (i = 0; i < SPI_processed; i++)
     {
         tuple = tuptable->vals[i];
-        snprintf(db_schema, 4096, "%s%s\\n", db_schema, remove_newline(SPI_getvalue(tuple, tupdesc, 1)));
+        snprintf(db_schema, 4096, "%s%s\\n", db_schema, SPI_getvalue(tuple, tupdesc, 1));
     }
 
     SPI_finish();
@@ -123,14 +127,14 @@ const char *get_text(const char *json)
 {
     char *start, *end;
 
-    start = strstr(json, "\"text\":\"");
+    start = strstr(json, "\"content\":\"");
     if (start == NULL)
     {
         return "Error! Something went Wrong. Make sure you are using a valid API key. You should add your API key to secrets.h.";
     }
 
-    start += strlen("\"text\":\"");
-    end = strstr(start, "\",\"index\"");
+    start += strlen("\"content\":\"");
+    end = strstr(start, "\"},");
     if (end == NULL)
     {
         return NULL;
@@ -159,11 +163,11 @@ Datum gpt_query(PG_FUNCTION_ARGS)
     char *json;
     char *text;
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . For the description below, write appropriate SQL query in a single line. Make sure the table exists in the database. Description:%s\\n SQL:\"}", db_schema, natural_query);
+    sprintf(req_body, "{\r\n  \"model\": \"gpt-3.5-turbo\", \r\n \"messages\":  [{\"role\": \"system\", \"content\": \"You are a proficient Postgres database engineer. You think step by step and give clear and concise answers.\"}, {\"role\": \"user\", \"content\": \"Here are all the tables with their properties in a Postgres Database.\\n %s Write the SQL query that matches the following description. Do not describe it only write the SQL Query and write it in a single line. Description: %s \\n SQL Query: \"}]}", db_schema, natural_query);
     json = request_openAI(req_body);
     text = get_text(json);
 
-    PG_RETURN_TEXT_P(cstring_to_text(text));
+    PG_RETURN_TEXT_P(cstring_to_text(remove_newline(text)));
 }
 
 Datum gpt_explain(PG_FUNCTION_ARGS)
@@ -177,7 +181,8 @@ Datum gpt_explain(PG_FUNCTION_ARGS)
     char *json;
     char *text;
 
-    sprintf(req_body, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s . Now, I will write a SQL query and you should write a clear and concise explanation of the query in natural language. SQL Query:%s\\n Explanation:\"}", db_schema, sql_query);
+    sprintf(req_body, "{\r\n  \"model\": \"gpt-3.5-turbo\", \r\n \"messages\":  [{\"role\": \"system\", \"content\": \"You are a proficient Postgres database engineer. You think step by step and give clear and concise answers.\"}, {\"role\": \"user\", \"content\": \"Here are all the tables with their properties in a Postgres Database.\\n %s Expalin what this SQL query does:  %s \"}]}", db_schema, sql_query);
+
     json = request_openAI(req_body);
     text = get_text(json);
 
@@ -195,7 +200,8 @@ Datum gpt_explain_plan(PG_FUNCTION_ARGS)
     char *json;
     char *text;
 
-    snprintf(req_body, 4096, "{\r\n  \"model\": \"text-davinci-003\",  \r\n \"max_tokens\": 150,  \r\n \"prompt\": \"### Here are Postgres SQL tables with their properties:\\n %s .For the following SQL Query. How will the database engine execute the query? Explain the Query plan clearly and concisely. Query:%s\\n Query Plan:\"}", db_schema, sql_query);
+    sprintf(req_body, "{\r\n  \"model\": \"gpt-3.5-turbo\", \r\n \"messages\":  [{\"role\": \"system\", \"content\": \"You are a proficient Postgres database engineer. You think step by step and give clear and concise answers.\"}, {\"role\": \"user\", \"content\": \"Here are all the tables with their properties in a Postgres Database.\\n %s Explain the query plan for this following query. SQL Query: %s \\n Query Plan: \"}]}", db_schema, sql_query);
+
     json = request_openAI(req_body);
     text = get_text(json);
 

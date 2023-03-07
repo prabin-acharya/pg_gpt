@@ -56,5 +56,5 @@ eg. SELECT gpt_explain('SELECT f.departure_airport, COUNT(\*) AS num_flights FRO
 
 explains query plan in natural language
 
-eg. select gpt_explain_plan('SELECT f.departure_airport, COUNT(\*) AS num_flights FROM flights f WHERE f.status=' 'On Time' ' GROUP BY f.departure_airport;');  
+eg. select gpt_explain_plan('SELECT f.departure_airport, COUNT(\*) AS num_flights FROM flights f WHERE f.status=''On Time'' GROUP BY f.departure_airport;');  
  => `"The database engine will start by scanning through the flights table to select all rows with a status of 'On Time'. It will then group the results by departure airport and count the number of flights for each airport. Finally it will return the departure airport and the corresponding count of flights."`
