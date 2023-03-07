@@ -11,7 +11,7 @@
 
 - postgresql, postgresql-server-dev-xx
 - gcc
-- libcurl
+- [libcurl](https://curl.haxx.se/libcurl/c/libcurl.html)
 
 #### 3. Set OPENAI API Key
 
@@ -31,6 +31,8 @@ Enter the postgres shell: `psql`
 Voila!. Now, you can execute any of the following functions:
 
 ### Functions
+
+_Examples for [demo](https://postgrespro.com/community/demodb) database:_
 
 #### gpt_query(text, boolean)
 
